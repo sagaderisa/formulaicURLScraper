@@ -4,7 +4,8 @@
 # This code will allow you to import a tab-delineated file, scrape specified sections from the websites, and then add the information
 # back into your file.
 
-# I originally tried to use lxml, but it was a big pain in the neck so I used BeautifulSoup instead. 
+# I originally tried to use lxml, and then Beautiful Soup, (by using html tags to denote which sections to scrape), 
+# but because the HTML wasn't consistent, I finally went with regular expressions, which allows me to do a text-based approach.
 # A friend also recommended I try Scrapepy, because he says "it is a true web crawler instead of just a parser. I may try
 # that in the future.
 
