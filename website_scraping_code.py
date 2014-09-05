@@ -8,6 +8,7 @@
 # A friend also recommended I try Scrapepy, because he says "it is a true web crawler instead of just a parser. I may try
 # that in the future.
 
+
 # Functions to define: 1) open CSV, 2) formulate URLs from uniqueIDs in CSV, 3) search & scrape
 # and add to dictionary. 4) Write dictionary to file
 
@@ -65,15 +66,25 @@ def scrape(URL, startQuote, endQuote):
 	startQuote and endQuote in regular expression-friendly format (i.e. put \ before 
 	some characters, \s instead of space, etc.).
 	'''
+	time.sleep(1)
 	webpage = requests.get(URL, allow_redirects=False).text
 #	print webpage
 	searchStr = str(startQuote + '(.+)' + endQuote)
 	scraping = re.search(searchStr,webpage)
-	if scraping == None:
-		print "Scraping program couldn't find the information for {0}.".format(URL)
-	return scraping.group(1)
+	# add try here instead of this way, also add "source\sof\sthis\sinformation\."
+	try:
+		return scraping.group(1).encode('utf-8')
+	except AttributeError:
+		print '''Scraping program didn't work for {0}. Most likely, this instance 
+		varies from the page/formula you entered. Try going to the URL manually.'''.format(URL)
+		return '''The program was unable to scrape this record. Most likely, this instance 
+		varies from the page/formula you entered.  Try going to the URL manually.
+		'''
+#	if scraping == None:
+#		print "Scraping program couldn't find the information for {0}.".format(URL)
+#	return scraping.group(1)
 #	print scraping
-	time.sleep(1)
+
 
 def scrapeUpdateDict(**kwargs):
 	'''This is the core function of this module. If you are trying to scrape data from a 
@@ -106,17 +117,47 @@ def scrapeUpdateDict(**kwargs):
 	for item in fileList:
 		print item.get('URL')
 		newInfo = scrape(item.get('URL'), startQuote, endQuote)
-		print newInfo
+#		print newInfo
 		item[newColumnName] = newInfo
 	writeDictToTSV(fileList, tsv_file_destination, tsv_file, newColumnName)
-		
-NTSBKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport\.', 'endQuote' : 'Index\sfor',
+
+NTSBTestKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport\.', 'endQuote' : 'Index\sfor',
 'tsv_file' : '/Users/bethanylquinn/Desktop/Pyscripts/NTSB_Test.txt', 
 'uniqueIDColumnName' : 'Event Id', 'newColumnName' : 'Description',
 'urlFormulaPrefix' : 'http://www.ntsb.gov/aviationquery/brief.aspx?ev_id=',
 'urlFormulaSuffix' : '&key=1',
-'tsv_file_destination' : 'NTSBTestResult2.txt'}
+'tsv_file_destination' : 'NTSBTestResult3.txt'}
 
-NTSBKwargsDict['headers']=createHeaderList('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_Test.txt')
+NTSBTestKwargsDict['headers']=createHeaderList('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_Test.txt')
+
+NTSBKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport\.', 'endQuote' : 'Index\sfor',
+'tsv_file' : '/Users/bethanylquinn/Desktop/Pyscripts/NTSB_ramp_accidents.txt', 
+'uniqueIDColumnName' : 'Event Id', 'newColumnName' : 'Description',
+'urlFormulaPrefix' : 'http://www.ntsb.gov/aviationquery/brief.aspx?ev_id=',
+'urlFormulaSuffix' : '&key=1',
+'tsv_file_destination' : 'NTSB_ramp_accident_info.txt'}
+
+NTSBKwargsDict['headers']=createHeaderList('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_ramp_accidents.txt')
 
 scrapeUpdateDict(**NTSBKwargsDict)
+
+# This next bit was my first attempt to write a scrape function. It was based on 
+# lxml, which is a huge pain in the ass. Use BeautifulSoup instead.
+
+
+# Add input to format in FAASearchURL and define uniqueColumnName
+# FAASearchURL = 'http://www.asias.faa.gov/pls/apex/f?p=100:18:0::NO::AP_BRIEF_RPT_VAR:'
+# FAA_Test_File = '/Users/bethanylquinn/Desktop/Pyscripts/FAA_AIDS_Test.csv'
+# NTSBURLPrefix = 'www.ntsb.gov/aviationquery/brief.aspx?ev_id='
+# NTSBURLSuffix = '&key=1'
+
+
+# FAAURLDict = formulateURLDict('/Users/bethanylquinn/Desktop/Pyscripts/FAA_AIDS_Test.csv', 'AIDS Report Number', FAASearchURL)
+# print FAAURLDict
+
+# NTSBURLDict = formulateURLDict('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_Test.csv', 'Event Id', NTSBURLPrefix, NTSBURLSuffix)
+# print NTSBURLDict
+
+# regular expressions - aircraft\sincident\sreport\.(.+)\<a 
+# Dot in regular expressions stands for one character of anything. \. means it's an actual period.
+# Parentheses says you actually want to save it. \ means it's actually the character that follows.
