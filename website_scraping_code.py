@@ -12,12 +12,17 @@
 
 # Functions to define: 1) open CSV, 2) formulate URLs from uniqueIDs in CSV, 3) search & scrape
 # and add to dictionary. 4) Write dictionary to file
-
-
 import requests # Requests interacts with the web and pulls data from websites.
 import time # Time allows you to delay your requests so that you don't bombard the other person's server
 import csv # CSV is a module that helps with file handling
 import re # re stands for "regular expressions" and it allows you to recognize a pattern and pull information from it
+
+# Here I'm defining a function to import the file as a list of dictionaries. 
+# That will keep the original order of the rows in the file, but also allow me to pull 
+# information from a given column. I created a method using tab-delineated text file first
+# because the first file I was working with had a lot of internal commas, and NTSB used '|' to delineate fields.
+# But CSV is more conventional, so I'm in the process of building that in. 
+
 
 def createListFromTSV(tsvFile):
 	'''This function takes a tab-delineated file (tsvFile) and returns a list of dictionaries.'''
@@ -30,6 +35,17 @@ def createListFromTSV(tsvFile):
 		return fileList
 #		print fileList
 
+def createListFromCSV(csvFile):
+	with open(csvFile, "rU") as f:
+		fileReader = csv.DictReader(f)
+		fileList = []
+		for line in fileReader:
+			fileList.append(line)
+		return fileList
+
+# Here I'm creating a list of headers (column names). This will allow me to put the columns
+# back in their original order. Also, I believe some of the DictWriter functions requires a headers list.
+
 def createHeaderList(tsvFile):
 	'''This function creates a list of headers from a tab-delineated file (tsvfile).'''
 	with open(tsvFile,"rU") as myFile:
@@ -38,6 +54,16 @@ def createHeaderList(tsvFile):
 			lines = myFile.read().split("\r")
 		headers = lines[0].split("\t")
 		return headers
+
+def createCSVHeaderList(csvFile):
+	with open(csvFile, "rU") as myFile:
+		lines = myFile.read().split("\n")
+		if lines <2:
+			lines = myFile.read().split("\r")
+		headers = lines[0].split("\t")
+		return headers
+
+# Here, I'm writing the list of dictionaries back to the file.
 
 def writeDictToTSV(myList, destFile, tsvFile, newColumnName):
 	'''This function writes a list of dictionaries to a tsvFile.'''
@@ -51,6 +77,20 @@ def writeDictToTSV(myList, destFile, tsvFile, newColumnName):
 		for thing in myList:
 			destination.writerow(thing)
 
+def writeDictToCSV(myList, destFile, csvFile, newColumnName):
+	'''This function writes a list of dictionaries to a csvFile.'''
+	headers = createCSVHeaderList(csvFile)
+	headers.append('URL')
+	headers.append(newColumnName)
+	with open(destFile, "w") as outfile:
+		destination = csv.DictWriter(outfile,headers,delimiter='\t')
+		destination.writeheader()
+		for thing in myList:
+			destination.writerow(thing)
+
+# This function pulls the unique identifiers out of your fileList and then creates URLs based
+# on a formula you specify.
+
 def formulateURLList(fileList, uniqueIDColumnName, urlFormulaPrefix, urlFormulaSuffix=''):
 	'''This creates a list of URLs based on a list of unique identifiers.'''
 	for entry in fileList: # fileList is a list of dicts
@@ -59,7 +99,9 @@ def formulateURLList(fileList, uniqueIDColumnName, urlFormulaPrefix, urlFormulaS
 		entry['URL'] = URL
 	return fileList
 
-
+# This function scrapes the html/text between your startQuote and your endQuote.
+# It uses regular expressions, which is kind of finicky. Here's a regular expressions cheat sheet:
+# http://regexlib.com/CheatSheet.aspx?AspxAutoDetectCookieSupport=1
 
 def scrape(URL, startQuote, endQuote):
 	'''string --> string
@@ -74,18 +116,16 @@ def scrape(URL, startQuote, endQuote):
 	scraping = re.search(searchStr,webpage)
 	# add try here instead of this way, also add "source\sof\sthis\sinformation\."
 	try:
-		return scraping.group(1).encode('utf-8')
+		return scraping.group(1).encode('utf-8').strip(<br>)
 	except AttributeError:
-		print '''Scraping program didn't work for {0}. Most likely, this instance 
-		varies from the page/formula you entered. Try going to the URL manually.'''.format(URL)
-		return '''The program was unable to scrape this record. Most likely, this instance 
-		varies from the page/formula you entered.  Try going to the URL manually.
-		'''
+		print 'Scraping program didn't work for {0}. Most likely, this instance varies from the page/formula you entered. Try going to the URL manually.'.format(URL)
+		return 'The program was unable to scrape this record. Most likely, this instance varies from the page/formula you entered.  Try going to the URL manually.'
 #	if scraping == None:
 #		print "Scraping program couldn't find the information for {0}.".format(URL)
 #	return scraping.group(1)
 #	print scraping
 
+# Here's where it all comes together. 
 
 def scrapeUpdateDict(**kwargs):
 	'''This is the core function of this module. If you are trying to scrape data from a 
@@ -99,7 +139,6 @@ def scrapeUpdateDict(**kwargs):
 	#if you want to add a default, you can write variable = kwargs.get('variable',default) otherwise value is none
 	# steps are 1) create fileDict, 2) create urlDict, 3) scrape data, 
 	# 4) add data to newColumnName in fileDict, 5) write info/new info to csv_file or csv_file_destination
-	htmlSection = kwargs.get('htmlSection')
 	tsv_file = kwargs.get('tsv_file')
 	uniqueIDColumnName = kwargs.get('uniqueIDColumnName')
 	newColumnName = kwargs.get('newColumnName')
@@ -122,6 +161,26 @@ def scrapeUpdateDict(**kwargs):
 		item[newColumnName] = newInfo
 	writeDictToTSV(fileList, tsv_file_destination, tsv_file, newColumnName)
 
+# I wrote a separate function in case you wanted to create your URL list in your excel file.
+# Sometimes this is easier when a URL is formulaic but more complicated than prefix + uniqueID + suffix
+
+def scrapeFromURLList(**kwargs):
+	tsv_file = kwargs.get('tsv_file')
+	urlColumnName = kwargs.get('urlColumnName')
+	newColumnName = kwargs.get('newColumnName')
+	tsv_file_destination = kwargs.get('tsv_file_destinaton','tsv_file')
+	headers = kwargs.get('headers')
+	startQuote = kwargs.get('startQuote')
+	endQuote = kwargs.get('endQuote')(
+	kwargs['headers'].append(newColumnName)
+	fileList = createListFromTSV(tsv_file)
+	for item in fileList:
+		URL = item.get(urlColumnName)
+		newInfo = scrape(URL, startQuote, endQuote)
+		item[newColumnName] = newInfo
+	writeDictToTSV(fileList, tsv_file_destination, tsv_file, newColumnName)
+		
+
 NTSBTestKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport\.', 'endQuote' : 'Index\sfor',
 'tsv_file' : '/Users/bethanylquinn/Desktop/Pyscripts/NTSB_Test.txt', 
 'uniqueIDColumnName' : 'Event Id', 'newColumnName' : 'Description',
@@ -140,24 +199,7 @@ NTSBKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport
 
 NTSBKwargsDict['headers']=createHeaderList('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_ramp_accidents.txt')
 
-scrapeUpdateDict(**NTSBKwargsDict)
-
-# This next bit was my first attempt to write a scrape function. It was based on 
-# lxml, which is a huge pain in the ass. Use BeautifulSoup instead.
-
-
-# Add input to format in FAASearchURL and define uniqueColumnName
-# FAASearchURL = 'http://www.asias.faa.gov/pls/apex/f?p=100:18:0::NO::AP_BRIEF_RPT_VAR:'
-# FAA_Test_File = '/Users/bethanylquinn/Desktop/Pyscripts/FAA_AIDS_Test.csv'
-# NTSBURLPrefix = 'www.ntsb.gov/aviationquery/brief.aspx?ev_id='
-# NTSBURLSuffix = '&key=1'
-
-
-# FAAURLDict = formulateURLDict('/Users/bethanylquinn/Desktop/Pyscripts/FAA_AIDS_Test.csv', 'AIDS Report Number', FAASearchURL)
-# print FAAURLDict
-
-# NTSBURLDict = formulateURLDict('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_Test.csv', 'Event Id', NTSBURLPrefix, NTSBURLSuffix)
-# print NTSBURLDict
+# scrapeUpdateDict(**NTSBKwargsDict)
 
 # regular expressions - aircraft\sincident\sreport\.(.+)\<a 
 # Dot in regular expressions stands for one character of anything. \. means it's an actual period.
