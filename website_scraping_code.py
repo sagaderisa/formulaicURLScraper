@@ -60,7 +60,7 @@ def createCSVHeaderList(csvFile):
 		lines = myFile.read().split("\n")
 		if lines <2:
 			lines = myFile.read().split("\r")
-		headers = lines[0].split("\t")
+		headers = lines[0].split(",")
 		return headers
 
 # Here, I'm writing the list of dictionaries back to the file.
@@ -83,7 +83,7 @@ def writeDictToCSV(myList, destFile, csvFile, newColumnName):
 	headers.append('URL')
 	headers.append(newColumnName)
 	with open(destFile, "w") as outfile:
-		destination = csv.DictWriter(outfile,headers,delimiter='\t')
+		destination = csv.DictWriter(outfile,headers)
 		destination.writeheader()
 		for thing in myList:
 			destination.writerow(thing)
@@ -109,16 +109,18 @@ def scrape(URL, startQuote, endQuote):
 	startQuote and endQuote in regular expression-friendly format (i.e. put \ before 
 	some characters, \s instead of space, etc.).
 	'''
-	time.sleep(1)
+	time.sleep(0.5)
 	webpage = requests.get(URL, allow_redirects=False).text
 #	print webpage
 	searchStr = str(startQuote + '(.+)' + endQuote)
-	scraping = re.search(searchStr,webpage)
+#	print type(searchStr)
+	scraping = re.search(searchStr,webpage,re.DOTALL)
+#	print "webpage: ",webpage
 	# add try here instead of this way, also add "source\sof\sthis\sinformation\."
 	try:
-		return scraping.group(1).encode('utf-8').strip(<br>)
+		return scraping.group(1).encode('utf-8')
 	except AttributeError:
-		print 'Scraping program didn't work for {0}. Most likely, this instance varies from the page/formula you entered. Try going to the URL manually.'.format(URL)
+		print "Scraping program didn't work for {0}. Most likely, this instance varies from the page/formula you entered. Try going to the URL manually.".format(URL)
 		return 'The program was unable to scrape this record. Most likely, this instance varies from the page/formula you entered.  Try going to the URL manually.'
 #	if scraping == None:
 #		print "Scraping program couldn't find the information for {0}.".format(URL)
@@ -164,6 +166,43 @@ def scrapeUpdateDict(**kwargs):
 # I wrote a separate function in case you wanted to create your URL list in your excel file.
 # Sometimes this is easier when a URL is formulaic but more complicated than prefix + uniqueID + suffix
 
+def csvScrapeUpdateDict(**kwargs):
+	'''This is the core function of this module. If you are trying to scrape data from a 
+	series of websites with formulaic URLs based on a unique identifier (government sites are 
+	commonly formatted this way), put them in a csv file (you can frequently 
+	download some but not all of the information about a given set of government information). 
+	This function will read the csv file, pull out the unique identifier, formulate the URL, 
+	and scrape the data you specify from the website. (In order to do this, you'll need to know 
+	what the text or html is around the text you want to scrape.)
+	'''
+	#if you want to add a default, you can write variable = kwargs.get('variable',default) otherwise value is none
+	# steps are 1) create fileDict, 2) create urlDict, 3) scrape data, 
+	# 4) add data to newColumnName in fileDict, 5) write info/new info to csv_file or csv_file_destination
+	csv_file = kwargs.get('csv_file')
+	uniqueIDColumnName = kwargs.get('uniqueIDColumnName')
+	newColumnName = kwargs.get('newColumnName')
+	urlFormulaPrefix = kwargs.get('urlFormulaPrefix')
+	urlFormulaSuffix = kwargs.get('urlFormulaSuffix','')
+	csv_file_destination = kwargs.get('csv_file_destination','csv_file')
+	headers = kwargs.get('headers')
+	startQuote = kwargs.get('startQuote')
+	endQuote = kwargs.get('endQuote')
+# add other option to formulate URL Dict not from generic way (i.e. for bill summary URLs)	
+	print "Headers type before adding new columns is: ",type(headers)
+	kwargs['headers'].append('URL')
+	kwargs['headers'].append(newColumnName)
+#	print "Headers are: ",kwargs['headers']
+	print "Headers type after adding new columns: ",type(headers)
+	fileList = createListFromCSV(csv_file)
+	fileList = formulateURLList(fileList, uniqueIDColumnName,urlFormulaPrefix, urlFormulaSuffix)
+	for item in fileList:
+		print item.get('URL')
+		newInfo = scrape(item.get('URL'), startQuote, endQuote)
+#		print newInfo
+		item[newColumnName] = newInfo
+#	print "fileList is: ",fileList
+	writeDictToCSV(fileList, csv_file_destination, csv_file, newColumnName)
+
 def scrapeFromURLList(**kwargs):
 	tsv_file = kwargs.get('tsv_file')
 	urlColumnName = kwargs.get('urlColumnName')
@@ -171,13 +210,15 @@ def scrapeFromURLList(**kwargs):
 	tsv_file_destination = kwargs.get('tsv_file_destinaton','tsv_file')
 	headers = kwargs.get('headers')
 	startQuote = kwargs.get('startQuote')
-	endQuote = kwargs.get('endQuote')(
+	endQuote = kwargs.get('endQuote')
 	kwargs['headers'].append(newColumnName)
+	print "Headers are: ",kwargs['headers']
 	fileList = createListFromTSV(tsv_file)
 	for item in fileList:
 		URL = item.get(urlColumnName)
 		newInfo = scrape(URL, startQuote, endQuote)
 		item[newColumnName] = newInfo
+		print "Item is: ",item
 	writeDictToTSV(fileList, tsv_file_destination, tsv_file, newColumnName)
 		
 
@@ -199,8 +240,38 @@ NTSBKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport
 
 NTSBKwargsDict['headers']=createHeaderList('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_ramp_accidents.txt')
 
-# scrapeUpdateDict(**NTSBKwargsDict)
+# OSHAKwargsDict = { 'csv_file' : 'osha_file.csv', 
+# 'uniqueIDColumnName' : 'Summary NR',
+# 'newColumnName' : 'Accident Description', 
+# 'urlFormulaPrefix' : 'https://www.osha.gov/pls/imis/accidentsearch.accident_detail?id=',
+# 'csv_file_destination' : 'osha_dest_file.txt', 
+# 'startQuote' : '<TABLE\sbgcolor="white"\sborder="0"\scellspacing="1"\scellpadding="3"\sWIDTH="99%">\n<tr><td\sclass="blueTen">', 
+# 'endQuote' : '</td></tr>\n</TABLE>'}
 
-# regular expressions - aircraft\sincident\sreport\.(.+)\<a 
-# Dot in regular expressions stands for one character of anything. \. means it's an actual period.
-# Parentheses says you actually want to save it. \ means it's actually the character that follows.
+# OSHAKwargsDict['headers']=createCSVHeaderList('osha_file.csv')
+
+FAATestKwargsDict = { 'csv_file' : 'FAA_Test.csv', 
+'uniqueIDColumnName' : 'AIDS Report Number',
+'newColumnName' : 'Event Remarks', 
+'urlFormulaPrefix' : 'http://www.asias.faa.gov/pls/apex/f?p=100:18:0::NO::AP_BRIEF_RPT_VAR:',
+'csv_file_destination' : 'FAA_ramp_test_dest_file.csv',
+'startQuote' : '<div\sid="narr_text">\s?<br>',
+'endQuote' : '</div>\n<HR>\n<div\sid="end_1">END\sREPORT'}
+
+FAATestKwargsDict['headers']=createCSVHeaderList('FAA_Test.csv')
+print "FAA Test Headers are: ",FAATestKwargsDict['headers']
+
+
+FAAKwargsDict = { 'csv_file' : 'FAA_ramp_incidents.csv', 
+'uniqueIDColumnName' : 'AIDS Report Number',
+'newColumnName' : 'Event Remarks', 
+'urlFormulaPrefix' : 'http://www.asias.faa.gov/pls/apex/f?p=100:18:0::NO::AP_BRIEF_RPT_VAR:',
+'csv_file_destination' : 'FAA_ramp_dest_file.csv',
+'startQuote' : '<div\sid="narr_text">\s?<br>',
+'endQuote' : '</div>\n<HR>\n<div\sid="end_1">END\sREPORT'}
+
+FAAKwargsDict['headers']=createCSVHeaderList('FAA_ramp_incidents.csv')
+
+# scrapeUpdateDict(**NTSBTestKwargsDict)
+
+csvScrapeUpdateDict(**FAATestKwargsDict)
