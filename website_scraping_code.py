@@ -240,15 +240,6 @@ NTSBKwargsDict = { 'startQuote' : 'to\sprepare\sthis\saircraft\saccident\sreport
 
 NTSBKwargsDict['headers']=createHeaderList('/Users/bethanylquinn/Desktop/Pyscripts/NTSB_ramp_accidents.txt')
 
-# OSHAKwargsDict = { 'csv_file' : 'osha_file.csv', 
-# 'uniqueIDColumnName' : 'Summary NR',
-# 'newColumnName' : 'Accident Description', 
-# 'urlFormulaPrefix' : 'https://www.osha.gov/pls/imis/accidentsearch.accident_detail?id=',
-# 'csv_file_destination' : 'osha_dest_file.txt', 
-# 'startQuote' : '<TABLE\sbgcolor="white"\sborder="0"\scellspacing="1"\scellpadding="3"\sWIDTH="99%">\n<tr><td\sclass="blueTen">', 
-# 'endQuote' : '</td></tr>\n</TABLE>'}
-
-# OSHAKwargsDict['headers']=createCSVHeaderList('osha_file.csv')
 
 FAATestKwargsDict = { 'csv_file' : 'FAA_Test.csv', 
 'uniqueIDColumnName' : 'AIDS Report Number',
@@ -271,6 +262,31 @@ FAAKwargsDict = { 'csv_file' : 'FAA_ramp_incidents.csv',
 'endQuote' : '</div>\n<HR>\n<div\sid="end_1">END\sREPORT'}
 
 FAAKwargsDict['headers']=createCSVHeaderList('FAA_ramp_incidents.csv')
+
+
+
+OSHATestKwargsDict = { 'csv_file' : 'OSHATestFile.csv',
+'uniqueIDColumnName' : 'Summary NR',
+'newColumnName' : 'Accident Description',
+'urlFormulaPrefix' : 'https://www.osha.gov/pls/imis/accidentsearch.accident_detail?id=',
+'csv_file_destination' : 'OSHATestResult.csv',
+'startQuote' : 'WIDTH="99%">\n<tr><td\sclass="blueTen">',
+'endQuote': '</td></tr>\n</TABLE>\n</td></tr>\n<tr><td>\n<TABLE\sbgcolor="white"\sborder="0"\scellspacing="1" cellpadding="3"\sWIDTH="99%">\n<tr><td\sclass="blueBoldTen"\svalign="top">Keywords:'
+}
+
+OSHATestKwargsDict['headers']=createCSVHeaderList('OSHATestFile.csv')
+
+OSHAKwargsDict = { 'csv_file' : 'OSHAAccidentsNAICS4811_4812_4881.csv',
+'uniqueIDColumnName' : 'Summary NR',
+'newColumnName' : 'Accident Description',
+'urlFormulaPrefix' : 'https://www.osha.gov/pls/imis/accidentsearch.accident_detail?id=',
+'csv_file_destination' : 'OSHAAccidentsWithDescriptions_NAICS4811_4812_4881.csv',
+'startQuote' : 'WIDTH="99%">\n<tr><td\sclass="blueTen">',
+'endQuote': '</td></tr>\n</TABLE>\n</td></tr>\n<tr><td>\n<TABLE\sbgcolor="white"\sborder="0"\scellspacing="1" cellpadding="3"\sWIDTH="99%">\n<tr><td\sclass="blueBoldTen"\svalign="top">Keywords:'
+}
+
+OSHAKwargsDict['headers'] = createCSVHeaderList('OSHAAccidentsNAICS4811_4812_4881.csv')
+
 
 # scrapeUpdateDict(**NTSBTestKwargsDict)
 
